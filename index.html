@@ -25,6 +25,11 @@
         </header>
 
         <main>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="province">Province View</button>
+                <button class="tab-btn" data-tab="area">Area View</button>
+            </div>
+
             <div class="controls">
                 <div class="search-box">
                     <span class="search-icon">🔍</span>
@@ -61,7 +66,7 @@
             </div>
 
             <div style="margin-top: 1rem; text-align: right; color: var(--text-secondary); font-size: 0.9rem;">
-                Showing <span id="rowCount">0</span> provinces
+                Showing <span id="rowCount">0</span> <span id="rowLabel">provinces</span>
             </div>
         </main>
     </div>

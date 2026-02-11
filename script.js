@@ -1,5 +1,4 @@
-// Config - Columns
-const columns = [
+const provinceColumns = [
     { key: 'prov_id', label: 'ID', show: true },
     { key: 'province_name', label: 'Province', show: true },
     { key: 'turn_out', label: 'Turnout', type: 'number', show: true },
@@ -17,9 +16,33 @@ const columns = [
     { key: 'percent_count', label: '% Counted', type: 'percent', show: true }
 ];
 
+const areaColumns = [
+    { key: 'prov_id', label: 'ID', show: true },
+    { key: 'province_name', label: 'Province', show: true },
+    { key: 'area_id', label: 'Area', type: 'number', show: true }, // New Column
+    { key: 'turn_out', label: 'Turnout', type: 'number', show: true },
+    { key: 'percent_turn_out', label: '% Turnout', type: 'percent', show: false },
+    { key: 'party_list_turn_out', label: 'Party List Turnout', type: 'number', show: true },
+    { key: 'party_list_percent_turn_out', label: '% PL Turnout', type: 'percent', show: false },
+    { key: 'turn_out_diff', label: 'Turnout Diff', type: 'number', format: 'diff', show: true },
+    { key: 'turn_out_diff_percent', label: '% Diff', type: 'percent', format: 'diff', show: true },
+    { key: 'valid_votes', label: 'Valid', type: 'number', show: false },
+    { key: 'invalid_votes', label: 'Invalid', type: 'number', show: false },
+    { key: 'blank_votes', label: 'Blank', type: 'number', show: false },
+    { key: 'party_list_valid_votes', label: 'InValid (PL)', type: 'number', show: false },
+    { key: 'total_registered_vote', label: 'Registered', type: 'number', show: true },
+    { key: 'total_vote_stations', label: 'Stations', type: 'number', show: false },
+    { key: 'percent_count', label: '% Counted', type: 'percent', show: true }
+];
+
+let columns = provinceColumns; // Default to province
+
 // State
 let state = {
-    data: [],
+    activeTab: 'province', // 'province' or 'area'
+    provinceData: [],
+    areaData: [],
+    data: [], // Current view data
     sortKey: 'turn_out_diff_percent',
     sortDesc: true,
     filter: '',
@@ -28,7 +51,7 @@ let state = {
         acc[col.key] = col.show;
         return acc;
     }, {}),
-    totalStats: null // Store root stats for re-rendering
+    totalStats: null
 };
 
 // URLs
@@ -88,38 +111,72 @@ async function fetchData() {
 }
 
 function processData(rawData, provinceMap) {
-    state.data = rawData.map(row => {
-        // 1. Add Thai Name
-        const provId = row.prov_id;
-        row.province_name = provinceMap[provId] || provId;
+    // 1. Process Province Data
+    state.provinceData = rawData.map(row => processRow(row, provinceMap));
 
-        // 2. Convert Strings to Numbers
-        Object.keys(row).forEach(key => {
-            if (key !== 'prov_id' && key !== 'province_name' && key !== 'pause_report') {
-                const val = row[key];
-                if (typeof val === 'string') {
-                    // Try to parse if it looks numeric
-                    if (!isNaN(val) && val.trim() !== '') {
-                        row[key] = parseFloat(val);
-                    }
+    // 2. Process Area Data
+    state.areaData = [];
+    rawData.forEach(provRow => {
+        if (provRow.constituencies) {
+            provRow.constituencies.forEach(consRow => {
+                // Filter Logic: Exclude Area 0 if Turnout is 0
+                if (consRow.cons_id.endsWith('_0') && (consRow.turn_out === 0 || !consRow.turn_out)) {
+                    return; // Skip
+                }
+
+                let processedCons = processRow(consRow, provinceMap);
+
+                // Inherit Province Info
+                processedCons.prov_id = provRow.prov_id;
+                processedCons.province_name = provinceMap[provRow.prov_id] || provRow.prov_id;
+
+                // Extract Area ID (e.g., 'BKK_1' -> 1)
+                const parts = consRow.cons_id.split('_');
+                processedCons.area_id = parseInt(parts[parts.length - 1], 10);
+
+                state.areaData.push(processedCons);
+            });
+        }
+    });
+
+    // Set initial data
+    state.data = state.activeTab === 'province' ? state.provinceData : state.areaData;
+}
+
+function processRow(row, provinceMap) {
+    // Clone to avoid mutating original if needed, but here we can modify
+    let newRow = { ...row };
+
+    // Add Thai Name if available (for province rows)
+    if (newRow.prov_id && provinceMap[newRow.prov_id]) {
+        newRow.province_name = provinceMap[newRow.prov_id];
+    }
+
+    // Convert Strings to Numbers
+    Object.keys(newRow).forEach(key => {
+        if (key !== 'prov_id' && key !== 'province_name' && key !== 'pause_report' && key !== 'cons_id' && key !== 'candidates' && key !== 'result_party' && key !== 'constituencies') {
+            const val = newRow[key];
+            if (typeof val === 'string') {
+                if (!isNaN(val) && val.trim() !== '') {
+                    newRow[key] = parseFloat(val);
                 }
             }
-        });
-
-        // 3. Calculate Diffs
-        const turnOut = row.turn_out || 0;
-        const plTurnOut = row.party_list_turn_out || 0;
-
-        row.turn_out_diff = turnOut - plTurnOut;
-
-        if (turnOut !== 0) {
-            row.turn_out_diff_percent = (row.turn_out_diff / turnOut) * 100;
-        } else {
-            row.turn_out_diff_percent = 0;
         }
-
-        return row;
     });
+
+    // Calculate Diffs
+    const turnOut = newRow.turn_out || 0;
+    const plTurnOut = newRow.party_list_turn_out || 0;
+
+    newRow.turn_out_diff = turnOut - plTurnOut;
+
+    if (turnOut !== 0) {
+        newRow.turn_out_diff_percent = (newRow.turn_out_diff / turnOut) * 100;
+    } else {
+        newRow.turn_out_diff_percent = 0;
+    }
+
+    return newRow;
 }
 
 // Setup Listeners
@@ -145,6 +202,54 @@ function setupEventListeners() {
             dropdown.classList.remove('show');
         }
     });
+
+    // Tab Switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            switchTab(tab);
+        });
+    });
+}
+
+function switchTab(tabName) {
+    if (state.activeTab === tabName) return;
+
+    state.activeTab = tabName;
+
+    // Update Buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-tab') === tabName) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // Switch Data & Columns
+    if (tabName === 'province') {
+        state.data = state.provinceData;
+        columns = provinceColumns;
+    } else {
+        state.data = state.areaData;
+        columns = areaColumns;
+    }
+
+    // Reset visibility state for new columns (or merge if you want to keep prefs)
+    // For simplicity, let's reset to defaults of that view
+    state.visibleColumns = columns.reduce((acc, col) => {
+        acc[col.key] = col.show;
+        return acc;
+    }, {});
+
+    // Update Label
+    const labelSpan = document.getElementById('rowLabel');
+    if (labelSpan) {
+        labelSpan.textContent = tabName === 'province' ? 'provinces' : 'areas';
+    }
+
+    renderColumnToggles();
+    renderTable();
 }
 
 function renderTotalStats(currentData) {
