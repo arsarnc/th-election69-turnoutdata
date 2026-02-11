@@ -217,6 +217,14 @@ function switchTab(tabName) {
 
     state.activeTab = tabName;
 
+    // Toggle Total Stats Visibility
+    const totalStats = document.getElementById('totalStats');
+    if (tabName === 'area') {
+        totalStats.style.display = 'none';
+    } else {
+        totalStats.style.display = 'grid';
+    }
+
     // Update Buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.getAttribute('data-tab') === tabName) {
