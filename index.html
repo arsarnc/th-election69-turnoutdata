@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Election 69: Province Turnout Data</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Election 69 Turnout Data</h1>
+            <div class="subtitle">Comprehensive breakdown of province-level voting statistics</div>
+        </header>
+
+        <main>
+            <div class="controls">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" class="search-input"
+                        placeholder="Search province name or ID...">
+                </div>
+
+                <div class="column-toggles">
+                    <button class="toggle-btn" id="toggleDropdownBtn">
+                        Show/Hide Columns ▾
+                    </button>
+                    <div class="toggle-dropdown" id="columnDropdown">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Stats -->
+            <div id="totalStats" class="total-stats-container">
+                <!-- Stats injected by JS -->
+            </div>
+
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <table id="dataTable">
+                        <thead>
+                            <!-- Filled by JS -->
+                        </thead>
+                        <tbody>
+                            <!-- Filled by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="margin-top: 1rem; text-align: right; color: var(--text-secondary); font-size: 0.9rem;">
+                Showing <span id="rowCount">0</span> provinces
+            </div>
+        </main>
+    </div>
+
+    <!-- Data is fetched dynamically by script.js -->
+    <script src="script.js"></script>
+</body>
+
+</html>
